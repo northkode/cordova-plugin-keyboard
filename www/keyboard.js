@@ -21,8 +21,9 @@
 
 var argscheck = require('cordova/argscheck'),
     utils = require('cordova/utils'),
-    exec = require('cordova/exec');
-   
+    exec = require('cordova/exec'),
+    channel = require('cordova/channel');
+
 var Keyboard = function() {
 };
 
@@ -42,9 +43,7 @@ Keyboard.fireOnShow = function() {
     Keyboard.isVisible = true;
     cordova.fireWindowEvent('keyboardDidShow');
 
-    if(Keyboard.onshow) {
-	Keyboard.onshow();
-    }
+    if(Keyboard.onshow) { Keyboard.onshow(); }
 };
 
 Keyboard.fireOnHide = function() {
@@ -75,9 +74,7 @@ Keyboard.fireOnHiding = function() {
 Keyboard.fireOnShowing = function() {
     cordova.fireWindowEvent('keyboardWillShow');
 
-    if(Keyboard.onshowing) {
-	Keyboard.onshowing();
-    }
+    if(Keyboard.onshowing) { Keyboard.onshowing(); }
 };
 
 Keyboard.show = function() {
@@ -88,7 +85,37 @@ Keyboard.hide = function() {
     exec(null, null, "Keyboard", "hide", []);
 };
 
+
+Keyboard.disableScroll = function(disable) {
+    exec(null, null, "Keyboard", "disableScroll", [disable]);
+};
+
 Keyboard.isVisible = false;
 Keyboard.automaticScrollToTopOnHiding = false;
+
+
+channel.onCordovaReady.subscribe(function() {
+
+    if(cordova.platformId == 'android') {
+        exec(success, null, 'Keyboard', 'init', []);
+        function success(msg) {
+            var action = msg.charAt(0);
+            if ( action === 'S' ) {
+                var keyboardHeight = msg.substr(1);
+                Keyboard.isVisible = true;
+                cordova.fireWindowEvent('native.keyboardshow', { 'keyboardHeight': + keyboardHeight });
+
+                //deprecated
+                cordova.fireWindowEvent('native.showkeyboard', { 'keyboardHeight': + keyboardHeight });
+            } else if ( action === 'H' ) {
+                Keyboard.isVisible = false;
+                cordova.fireWindowEvent('native.keyboardhide');
+
+                //deprecated
+                cordova.fireWindowEvent('native.hidekeyboard');
+            }
+        }
+    }
+});
 
 module.exports = Keyboard;
